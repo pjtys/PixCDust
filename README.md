@@ -23,8 +23,9 @@ Start here to understand what you can do: "There is nothing more frustrating tha
 The downloader classes allow you to directly download SWOT Pixel Cloud files from hydroweb.next (or other sources such as PO.DAAC to be implemented).  
 For hydroweb.next, it requires you to create an account and an API Key (token) from the platform: https://hydroweb.next.theia-land.fr.
 Then, carefully store your API-Key :
-- either in your eodag configuration file (usually `~/.config/eodag/eodag.yml`, automatically generated the first time you use eodag) in `auth/credentials/apikey="PLEASE_CHANGE_ME"`;
-- or in an environment variable `export EODAG__HYDROWEB_NEXT__AUTH__CREDENTIALS__APIKEY="PLEASE_CHANGE_ME"`.
+- (default backend) in an environment variable `export HYDROWEB_API_KEY="PLEASE_CHANGE_ME"`.
+- (eodag backend) in your eodag configuration file (usually ~/.config/eodag/eodag.yml, automatically generated the first time you use eodag) in auth/credentials/apikey="PLEASE_CHANGE_ME";
+- (eodag backend) or in an environment variable export EODAG__HYDROWEB_NEXT__AUTH__CREDENTIALS__APIKEY="PLEASE_CHANGE_ME".
 
 ## 🪄 *Converters* 
 The converter classes allow you to create more easy-to-use databases than the original netcdf4 format. The various databases are designed for **local** studies, not for huge country-scale databases (though it should work, they will not be efficient).  
@@ -39,7 +40,7 @@ The reader classes allow you to read the original netcdf4 format or the database
 Here are some python script implementing the classes.
 
 ## 🔶 *Discrete Global Grid System (experimental)*
-I enjoy DDGS a lot. It is pretty great if you want to perform on-the-fly "rasterization", partitionning, comparing pixels over time or space, etc.  
+I enjoy DGGS a lot. It is pretty great if you want to perform on-the-fly "rasterization", partitionning, comparing pixels over time or space, etc.  
 Currently H3 and HEALPix are implemented.  
 
 ## ✅ *Tests*

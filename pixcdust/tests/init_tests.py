@@ -74,10 +74,11 @@ def init_hydroweb_env(test_settings: JsonTestsSettings) -> None:
     """
     apikey = test_settings.hydroweb_auth
     if apikey:
+        os.environ["HYDROWEB_API_KEY"] = apikey
         os.environ["EODAG__HYDROWEB_NEXT__AUTH__CREDENTIALS__APIKEY"] = apikey
 
 
-def download_test_data(path_download: Path) -> None:
+def download_test_data(path_download: Path, backend: str) -> None:
     """Download the test data from hydroweb.next.
 
     Args:
@@ -92,6 +93,7 @@ def download_test_data(path_download: Path) -> None:
     pixcdownloader = PixCDownloader(
         geometry,
         dates,
+        backend=backend,
         verbose=0,
         path_download=str(path_download)
         )
@@ -99,7 +101,7 @@ def download_test_data(path_download: Path) -> None:
 
 TEST_DATA_COUNT = 2
 def check_test_data(path_download: Path) -> bool:
-    data_list = list(path_download.glob("*/*nc"))
+    data_list = list(path_download.glob("**/*.nc"))
     return len(data_list) == TEST_DATA_COUNT
 
 
@@ -133,9 +135,9 @@ if __name__ == "__main__":
     if args.download is None:
         if not check_test_data(path_download):
             # config changed and the data is missing.
-            download_test_data(path_download)
+            download_test_data(path_download,'default')
     else:
         if args.download.lower() == "true":
             # download requested by user
-            download_test_data(path_download)
+            download_test_data(path_download,'default')
 

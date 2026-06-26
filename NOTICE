@@ -103,6 +103,10 @@ License: BSD 3-Clause License.
 EODAG: Earth Observation Data Access Gateway.
 Copyright (c) 2018-2024 CS GROUP France.
 Website: https://eodag.readthedocs.io/
+
+py-hydroweb: Python API to search and download hydrological data from the hydroweb.next catalog
+Copyright (c) 2024 CNES
+Website: https://github.com/CNES/py-hydroweb
 License: Apache License 2.0.
 
 XVec: A library for vectorized operations on xarray.

@@ -26,7 +26,7 @@ import xvec  # noqa  # pylint: disable=unused-import
 # xvec provide xvec accessor to xarray.
 
 import xarray as xr
-import geopandas as gpd
+import geopandas
 import operator
 import dask.array as da
 
@@ -95,7 +95,7 @@ class NcSimpleReader(BaseReader):
     def __init__(self,
                  path: str | Iterable[str] | Path | Iterable[Path],
                  variables: Optional[list[str]] = None,
-                 area_of_interest: Optional[gpd.GeoDataFrame] = None,
+                 area_of_interest: Optional[geopandas.GeoDataFrame] = None,
                  format_cfg : Optional[NcFormatCfg] = None,
                  conditions:  Optional[dict[str, dict[str, Union[str, float]]]] = None,
                  ):
@@ -259,6 +259,7 @@ class NcSimpleReader(BaseReader):
             engine="netcdf4",
             drop_variables=self.forbidden_variables,
             combine="nested",
+            data_vars="all",
             concat_dim="points",
             preprocess=preprocess,
         )
@@ -341,7 +342,7 @@ class NcSimpleReader(BaseReader):
         Useful for compatibility with xvec package and geographic manipulation.
 
         """
-        geom = gpd.points_from_xy(
+        geom = geopandas.points_from_xy(
             self.data[self.cst.default_long_name],
             self.data[self.cst.default_lat_name],
         )

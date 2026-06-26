@@ -35,11 +35,11 @@ def input_folder(tests_settings) -> Path:
 
 @pytest.fixture(scope="session")
 def input_files(input_folder) -> List[Path]:
-    return  list(input_folder.glob("*/*nc"))
+    return  list(input_folder.glob("**/*nc"))
 
 @pytest.fixture(scope="session")
 def first_file(input_folder) -> Path:
-    return  next(input_folder.glob("*/*_20240803T*nc"))
+    return  next(input_folder.glob("**/*_20240803T*nc"))
 
 @pytest.fixture(scope="session")
 def tmp_folder(tests_settings) -> Path:
