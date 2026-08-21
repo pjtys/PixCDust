@@ -1,36 +1,43 @@
 import random
-from pathlib import PosixPath, Path
+from pathlib import Path, PosixPath
 from typing import List, Union
 
 import fiona
-import numpy as np
 import geopandas as gpd
+import numpy as np
 import pytest
-from shapely.geometry import Polygon
 import xarray as xr
-
-from pixcdust.converters.gpkg import Nc2GpkgConverter, GpkgDGGSProjecter
+from pixcdust.converters.gpkg import GpkgDGGSProjecter, Nc2GpkgConverter
 from pixcdust.converters.shapefile import Nc2ShpConverter
 from pixcdust.converters.zarr import Nc2ZarrConverter
 from pixcdust.readers import GpkgReader
-from pixcdust.readers.zarr import ZarrReader
 from pixcdust.readers.netcdf import NcSimpleReader
+from pixcdust.readers.zarr import ZarrReader
+from shapely.geometry import Polygon
 
 LIM_AREA_POL = Polygon(
-        [(-1.50580, 43.39543), (-1.36597, 43.39543), (-1.36597, 43.56471), (-1.50580, 43.56471), (-1.50580, 43.39543)])
-LIM_AREA_GEOM = gpd.GeoDataFrame(index=[0], crs='epsg:4326', geometry=[LIM_AREA_POL])
+    [
+        (-1.50580, 43.39543),
+        (-1.36597, 43.39543),
+        (-1.36597, 43.56471),
+        (-1.50580, 43.56471),
+        (-1.50580, 43.39543),
+    ]
+)
+LIM_AREA_GEOM = gpd.GeoDataFrame(index=[0], crs="epsg:4326", geometry=[LIM_AREA_POL])
 """Geometry used as area of interest of limited area tests."""
 
 
 def test_nc_simple_reader_conditions(input_files):
     """Test NcSimpleReader with conditions on variables."""
     # Define conditions
-    conditions = {"classification": {'operator': "ge", 'threshold': 4}, # classification >= 4
-                  "classification": {'operator': "le", 'threshold': 3}, # classification <= 3
-                  "sig0": {'operator': "gt", 'threshold': 15} # sig0 > 15
-                  }
+    conditions = {
+        "classification": {"operator": "ge", "threshold": 4},  # classification >= 4
+        "classification": {"operator": "le", "threshold": 3},  # classification <= 3
+        "sig0": {"operator": "gt", "threshold": 15},  # sig0 > 15
+    }
 
-    converted_vars = ['height', 'sig0', 'classification']
+    converted_vars = ["height", "sig0", "classification"]
 
     # Instantiate the NcSimpleReader with conditions
     reader = NcSimpleReader(
@@ -46,18 +53,19 @@ def test_nc_simple_reader_conditions(input_files):
     for var, condition in conditions.items():
         op = condition.get("operator")
         val = condition.get("threshold")
-        if op == 'ge':
+        if op == "ge":
             assert (reader.data[var] >= val).all(), f"{var} not >= {val}"
-        elif op == 'le':
+        elif op == "le":
             assert (reader.data[var] <= val).all(), f"{var} not <= {val}"
-        elif op == 'gt':
+        elif op == "gt":
             assert (reader.data[var] > val).all(), f"{var} not > {val}"
-        elif op == 'lt':
+        elif op == "lt":
             assert (reader.data[var] < val).all(), f"{var} not < {val}"
 
 
-def validate_conversion_to_nc(read_data: xr.Dataset, converted_vars:List[str], first_file: Union[str, Path])\
-        -> None:
+def validate_conversion_to_nc(
+    read_data: xr.Dataset, converted_vars: List[str], first_file: Union[str, Path]
+) -> None:
     """Compare the start of a converted database to the first original netcdf file.
 
     Args:
@@ -69,15 +77,16 @@ def validate_conversion_to_nc(read_data: xr.Dataset, converted_vars:List[str], f
     """
     ncsimple = NcSimpleReader(str(first_file))
     ncsimple.open_dataset()
-    validate_conversion(read_data, converted_vars, ncsimple.data,is_longer=True)
+    validate_conversion(read_data, converted_vars, ncsimple.data, is_longer=True)
+
 
 def validate_conversion(
-        read_data: xr.Dataset,
-        converted_vars:List[str],
-        expected_data: xr.Dataset,
-        is_longer: bool,
-        len_tol: int = 0,
-        sort_var: bool = False
+    read_data: xr.Dataset,
+    converted_vars: List[str],
+    expected_data: xr.Dataset,
+    is_longer: bool,
+    len_tol: int = 0,
+    sort_var: bool = False,
 ) -> None:
     """Compare the read data to the expected data.
 
@@ -108,27 +117,33 @@ def validate_conversion(
         else:
             last = len(read_var)
 
-        np.testing.assert_allclose(read_var[last-30:last-1], expected_var[expected_last-30:expected_last-1])
-        r = random.randrange(30,last)
+        np.testing.assert_allclose(
+            read_var[last - 30 : last - 1],
+            expected_var[expected_last - 30 : expected_last - 1],
+        )
+        r = random.randrange(30, last)
         if len_tol == 0:
-            np.testing.assert_allclose(read_var[r-30:r-1], expected_var[r-30:r-1])
+            np.testing.assert_allclose(
+                read_var[r - 30 : r - 1], expected_var[r - 30 : r - 1]
+            )
         if is_longer:
             assert len(read_var) > expected_last
         else:
             assert expected_last + len_tol >= len(read_var) >= expected_last - len_tol
 
 
+@pytest.mark.realdata
 def test_convert_zarr_full_area(input_files, first_file, tmp_folder):
     """Test zarr conversion without area_of_interest.
 
     It is compared to the input data.
     """
     # Conversion
-    output =  str(tmp_folder / "zarr_conv_test_full")
-    converted_vars = ['height', 'sig0', 'classification']
+    output = str(tmp_folder / "zarr_conv_test_full")
+    converted_vars = ["height", "sig0", "classification"]
     pixc = Nc2ZarrConverter(
-            input_files,
-            variables=converted_vars,
+        input_files,
+        variables=converted_vars,
     )
     pixc.database_from_nc(output, mode="o")
 
@@ -137,19 +152,23 @@ def test_convert_zarr_full_area(input_files, first_file, tmp_folder):
     pixc_read.read()
     validate_conversion_to_nc(pixc_read.data, converted_vars, first_file)
 
+
 @pytest.fixture(scope="session")
 def converted_lim_gpkg(input_files, tmp_folder):
     output_gpkg = str(tmp_folder / "gpkg_conv_test_lim")
-    converted_vars = ['height', 'sig0', 'classification']
+    converted_vars = ["height", "sig0", "classification"]
     Nc2GpkgConverter(
-            input_files,
-            variables=converted_vars,
-            area_of_interest=LIM_AREA_GEOM,
+        input_files,
+        variables=converted_vars,
+        area_of_interest=LIM_AREA_GEOM,
     ).database_from_nc(output_gpkg, mode="o")
     return output_gpkg
 
 
-def test_convert_gpkg_and_zarr_limited_area(input_files, first_file, tmp_folder, converted_lim_gpkg):
+@pytest.mark.realdata
+def test_convert_gpkg_and_zarr_limited_area(
+    input_files, first_file, tmp_folder, converted_lim_gpkg
+):
     """Test geopackage and zarr conversion with area_of_interest.
 
     They are compared to each other.
@@ -157,13 +176,13 @@ def test_convert_gpkg_and_zarr_limited_area(input_files, first_file, tmp_folder,
     """
     # Conversion
     output_zarr = str(tmp_folder / "zarr_conv_test_lim")
-    converted_vars = ['height', 'sig0', 'classification']
+    converted_vars = ["height", "sig0", "classification"]
     output_gpkg = converted_lim_gpkg
 
     Nc2ZarrConverter(
-            input_files,
-            variables=converted_vars,
-            area_of_interest=LIM_AREA_GEOM,
+        input_files,
+        variables=converted_vars,
+        area_of_interest=LIM_AREA_GEOM,
     ).database_from_nc(output_zarr, mode="o")
 
     # Validation
@@ -171,20 +190,27 @@ def test_convert_gpkg_and_zarr_limited_area(input_files, first_file, tmp_folder,
     gpkg_read.read()
     zarr_read = ZarrReader(output_zarr)
     zarr_read.read()
-    validate_conversion(gpkg_read.data, converted_vars, zarr_read.data, is_longer=False, len_tol=2, sort_var="longitude")
+    validate_conversion(
+        gpkg_read.data,
+        converted_vars,
+        zarr_read.data,
+        is_longer=False,
+        len_tol=2,
+        sort_var="longitude",
+    )
 
 
+@pytest.mark.realdata
 def test_convert_shape_limited_area(input_files, first_file, tmp_folder):
-    """Test shapefile conversion with area_of_interest.
-    """
+    """Test shapefile conversion with area_of_interest."""
     # Conversion
-    output =  str(tmp_folder / "shp_conv_test_full")
-    converted_vars = ['height', 'sig0', 'classification']
+    output = str(tmp_folder / "shp_conv_test_full")
+    converted_vars = ["height", "sig0", "classification"]
 
     pixc = Nc2ShpConverter(
-            input_files,
-            variables=converted_vars,
-            area_of_interest=LIM_AREA_GEOM,
+        input_files,
+        variables=converted_vars,
+        area_of_interest=LIM_AREA_GEOM,
     )
     pixc.database_from_nc(output, mode="o")
 
@@ -197,6 +223,7 @@ def test_convert_shape_limited_area(input_files, first_file, tmp_folder):
 
 
 # Test for GpkgDGGSProjecter
+@pytest.mark.realdata
 def test_gpkg_dggs_projecter(converted_lim_gpkg, tmp_folder):
     """Test the GpkgDGGSProjecter class by converting a sample Gpkg to a DGGS projection."""
 
@@ -204,7 +231,7 @@ def test_gpkg_dggs_projecter(converted_lim_gpkg, tmp_folder):
     # Define parameters
     dggs_res = 10
     healpix = False
-    dggs_layer_pattern = '_h3'
+    dggs_layer_pattern = "_h3"
     output_path = str(tmp_folder / "gpkg_dggs_output")
 
     # Create an instance of GpkgDGGSProjecter
@@ -213,7 +240,7 @@ def test_gpkg_dggs_projecter(converted_lim_gpkg, tmp_folder):
         dggs_res=dggs_res,
         healpix=healpix,
         dggs_layer_pattern=dggs_layer_pattern,
-        path_out=output_path
+        path_out=output_path,
     )
 
     # Validate initialization
