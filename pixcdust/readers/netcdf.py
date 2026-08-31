@@ -56,11 +56,9 @@ class NcSimpleConstants:
 
 @dataclass
 class NcFormatCfg:
-    """Class configuring how a SWOT pixel cloud files is expected to be structured.
-    """
-    constants: NcSimpleConstants  =  field(
-        default_factory=NcSimpleConstants
-    )
+    """Class configuring how a SWOT pixel cloud files is expected to be structured."""
+
+    constants: NcSimpleConstants = field(default_factory=NcSimpleConstants)
     trusted_group: str = "pixel_cloud"
     forbidden_variables: list[str] = field(
         default_factory=lambda: [
@@ -90,15 +88,17 @@ class NcSimpleReader(BaseReader):
                     "classification":{'operator': "ge", 'threshold': 3},\
                     }
     """
+
     MULTI_FILE_SUPPORT = True
 
-    def __init__(self,
-                 path: str | Iterable[str] | Path | Iterable[Path],
-                 variables: Optional[list[str]] = None,
-                 area_of_interest: Optional[geopandas.GeoDataFrame] = None,
-                 format_cfg : Optional[NcFormatCfg] = None,
-                 conditions:  Optional[dict[str, dict[str, Union[str, float]]]] = None,
-                 ):
+    def __init__(
+        self,
+        path: str | Iterable[str] | Path | Iterable[Path],
+        variables: Optional[list[str]] = None,
+        area_of_interest: Optional[geopandas.GeoDataFrame] = None,
+        format_cfg: Optional[NcFormatCfg] = None,
+        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+    ):
         """Netcdf pixcdust reader configuration.
 
         Args:
@@ -122,7 +122,9 @@ class NcSimpleReader(BaseReader):
         self.conditions = conditions
 
     @staticmethod
-    def extract_info_from_nc_attrs(filename: str) -> Tuple[str, datetime, int, int, int, str]:
+    def extract_info_from_nc_attrs(
+        filename: str,
+    ) -> Tuple[str, datetime, int, int, int, str]:
         """Extracts orbit information from global attributes\
             in a SWOT pixel cloud netcdf.
 
@@ -166,8 +168,8 @@ class NcSimpleReader(BaseReader):
             ValueError: If 'operator' or 'threshold' keys are not in conditions.
             AttributeError: If operator is not the function name of the operator module.
         """
-        _k_operator = 'operator'
-        _k_to = 'threshold'
+        _k_operator = "operator"
+        _k_to = "threshold"
 
         # Loop through each condition and apply the filter
         for var, condition in self.conditions.items():
@@ -178,14 +180,17 @@ class NcSimpleReader(BaseReader):
 
             # Ensure the condition dictionary has the correct keys
             if _k_operator not in condition or _k_to not in condition:
-                raise ValueError(f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'")
+                raise ValueError(
+                    f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'"
+                )
 
             # Get the operator function dynamically from the operator module
             try:
                 operator_func = getattr(operator, condition[_k_operator])
             except AttributeError:
                 raise AttributeError(
-                    f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module")
+                    f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module"
+                )
 
             threshold = condition[_k_to]
 
@@ -194,10 +199,12 @@ class NcSimpleReader(BaseReader):
                 self.data[var] = self.data[var].compute()
 
             # Apply the filter using .where() on the dataset
-            self.data = self.data.where(operator_func(self.data[var], threshold), drop=True)
+            self.data = self.data.where(
+                operator_func(self.data[var], threshold), drop=True
+            )
 
     def read(self, orbit_info: bool = False) -> None:
-        """ Load self.path file(s).
+        """Load self.path file(s).
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
 
@@ -212,7 +219,7 @@ class NcSimpleReader(BaseReader):
         return self.open_dataset()
 
     def open_dataset(self) -> None:
-        """ Load the self.path file (need only one file in self.path).
+        """Load the self.path file (need only one file in self.path).
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
         """
@@ -230,10 +237,10 @@ class NcSimpleReader(BaseReader):
         self.__postprocess_points()
 
     def open_mfdataset(
-            self,
-            orbit_info: bool = False,
+        self,
+        orbit_info: bool = False,
     ) -> None:
-        """ Load self.path file(s) as a nested array.
+        """Load self.path file(s) as a nested array.
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
 
@@ -288,11 +295,13 @@ class NcSimpleReader(BaseReader):
 
             self.__postprocess_points()
 
-    def to_h3(self,
-              variables: str | list[str] | None=None,
-              resolution: int = 8,
-              interp: bool=False,
-              method: str = 'linear') -> xr.Dataset:
+    def to_h3(
+        self,
+        variables: str | list[str] | None = None,
+        resolution: int = 8,
+        interp: bool = False,
+        method: str = "linear",
+    ) -> xr.Dataset:
         """
         Convert a Dataset with latitude and longitude coordinates into an H3-indexed grid.
 
@@ -311,12 +320,17 @@ class NcSimpleReader(BaseReader):
             data = self.to_xarray()[variables]
         else:
             data = self.to_xarray()
-        return prepare_dataset_h3(data, resolution=resolution, interp=interp, method=method)
+        return prepare_dataset_h3(
+            data, resolution=resolution, interp=interp, method=method
+        )
 
-    def to_healpix(self, variables: str | list[str] | None=None,
-                   resolution: int = 8,
-                   interp: bool= False,
-                   method: str = 'linear') -> xr.Dataset:
+    def to_healpix(
+        self,
+        variables: str | list[str] | None = None,
+        resolution: int = 8,
+        interp: bool = False,
+        method: str = "linear",
+    ) -> xr.Dataset:
         """
         Convert a Dataset with latitude and longitude coordinates into an HEALPix-indexed grid.
 
@@ -335,7 +349,9 @@ class NcSimpleReader(BaseReader):
             data = self.to_xarray()[variables]
         else:
             data = self.to_xarray()
-        return prepare_dataset_healpix(data, resolution=resolution, interp=interp, method=method)
+        return prepare_dataset_healpix(
+            data, resolution=resolution, interp=interp, method=method
+        )
 
     def __postprocess_points(self) -> None:
         """Adds a points coordinates containing shapely.Points (longitude, latitude)

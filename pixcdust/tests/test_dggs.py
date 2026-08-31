@@ -45,6 +45,6 @@ def test_healpix_conversion(first_file):
     assert "cell_ids" in ds_healpix.coords, "HEALPix cell IDs should be present"
 
     # Ensure the data is not empty after conversion
-    assert (
-        len(ds_healpix["cell_ids"]) > 0
-    ), "The output dataset should have HEALPix cell IDs"
+    assert len(ds_healpix["cell_ids"]) > 0, (
+        "The output dataset should have HEALPix cell IDs"
+    )

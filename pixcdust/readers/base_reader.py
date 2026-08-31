@@ -23,10 +23,11 @@ import pandas as pd
 import geopandas as gpd
 
 
-PIXC_DATE_RE=re.compile(r'_\d{8}T\d{6}_\d{8}T\d{6}_')
+PIXC_DATE_RE = re.compile(r"_\d{8}T\d{6}_\d{8}T\d{6}_")
 """Regex patern used to extract the date (daystartThourstart_dayxendThoursend) 
 from a pixc file name.
 """
+
 
 def sorted_by_date(file_list: Iterable[Union[str, Path]]) -> List[Union[str, Path]]:
     """Sort the filenames by date as some converters need monotonic dates.
@@ -37,12 +38,14 @@ def sorted_by_date(file_list: Iterable[Union[str, Path]]) -> List[Union[str, Pat
     Returns:
         Sorted file_list.
     """
+
     def file_name_to_date(file_name: Union[str, Path]):
         date_founds = PIXC_DATE_RE.findall(str(file_name))
         if date_founds:
             return date_founds[-1]
         return file_name
-    return sorted(file_list, key = file_name_to_date) # sort by date
+
+    return sorted(file_list, key=file_name_to_date)  # sort by date
 
 
 class BaseReader:
@@ -63,13 +66,16 @@ class BaseReader:
                     "classification":{'operator': "ge", 'threshold': 3},\
                     }
     """
-    MULTI_FILE_SUPPORT=False
-    def __init__(self,
-                 path: str | Iterable[str] | Path | Iterable[Path],
-                 variables: Optional[list[str]] = None,
-                 area_of_interest: Optional[gpd.GeoDataFrame] = None,
-                 conditions:  Optional[dict[str, dict[str, Union[str, float]]]] = None,
-                 ):
+
+    MULTI_FILE_SUPPORT = False
+
+    def __init__(
+        self,
+        path: str | Iterable[str] | Path | Iterable[Path],
+        variables: Optional[list[str]] = None,
+        area_of_interest: Optional[gpd.GeoDataFrame] = None,
+        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+    ):
         """Basic pixcdust database reader configuration.
 
         Args:
@@ -83,21 +89,21 @@ class BaseReader:
                     }
         """
         if isinstance(path, str | Path):
-            self.path:  str | Iterable[str] = str(path)
+            self.path: str | Iterable[str] = str(path)
             self.multi_file_db = False
         else:
             if not self.MULTI_FILE_SUPPORT:
                 raise ValueError("This reader does not support opening multiple files.")
             self.multi_file_db = True
             # sort the filenames by date as some converters need monotonic dates.
-            self.path  = [str(p) for p in sorted_by_date(path)]
+            self.path = [str(p) for p in sorted_by_date(path)]
         self.area_of_interest = area_of_interest
         self._data: Optional[xr.Dataset] = None
         self.variables = variables
         self.conditions = conditions
 
     @property
-    def data(self) ->  xr.Dataset:
+    def data(self) -> xr.Dataset:
         """Return an xarray.Dataset view from the database loaded.
 
         Equivalent to to_xarray.
@@ -127,7 +133,6 @@ class BaseReader:
             DataFrame read.
         """
         return self.data.to_dataframe()
-
 
     def to_geodataframe(
         self,

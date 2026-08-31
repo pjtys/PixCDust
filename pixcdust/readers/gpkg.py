@@ -41,10 +41,9 @@ class GpkgReader(BaseReader):
         MULTI_FILE_SUPPORT: False, only support one file.
     """
 
-    def __init__(self,
-                 path: str | Path,
-                 area_of_interest: Optional[gpd.GeoDataFrame] = None
-                 ):
+    def __init__(
+        self, path: str | Path, area_of_interest: Optional[gpd.GeoDataFrame] = None
+    ):
         """Gpkg pixcdust database reader configuration.
         Read the list of layers from path.
 
@@ -54,16 +53,17 @@ class GpkgReader(BaseReader):
         """
         super().__init__(path, area_of_interest=area_of_interest)
         self._gdf_data: Optional[gpd.GeoDataFrame] = None
-        self.layers: list[str]  = fiona.listlayers(self.path)
+        self.layers: list[str] = fiona.listlayers(self.path)
 
     @property
-    def data(self) ->  xr.Dataset:
+    def data(self) -> xr.Dataset:
         return self._gdf_data.to_xarray()
 
     @data.setter
     def data(self, obj: xr.Dataset) -> None:
-        raise NotImplementedError("PixCGpkgReader internal data representation is a GeoDataFrame.")
-
+        raise NotImplementedError(
+            "PixCGpkgReader internal data representation is a GeoDataFrame."
+        )
 
     def to_geodataframe(
         self,
@@ -114,7 +114,6 @@ class GpkgReader(BaseReader):
             layers = self.layers
 
         for layer in tqdm(layers):
-
             layer_data = self.read_single_layer(
                 layer,
             )

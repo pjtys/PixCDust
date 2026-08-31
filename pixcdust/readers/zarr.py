@@ -38,13 +38,11 @@ class ZarrReader(BaseReader):
         MULTI_FILE_SUPPORT: False, only support one file.
     """
 
-
     def read(
         self,
-        date_interval: Optional[
-            Tuple[datetime.datetime, datetime.datetime]
-            ] | None = None,
-            ) -> None:
+        date_interval: Optional[Tuple[datetime.datetime, datetime.datetime]]
+        | None = None,
+    ) -> None:
         """Load a zarr database.
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
@@ -56,17 +54,25 @@ class ZarrReader(BaseReader):
 
         collection = zcollection.open_collection(
             self.path,
-            mode='r',
+            mode="r",
         )
 
         if date_interval:
             date_min = date_interval[0]
             date_max = date_interval[1]
             data_z = collection.load(
-                filters=lambda keys: date_min <= datetime.datetime(
-                    keys['year'], keys['month'], keys['day'],
-                    keys['hour'], keys['minute'], keys['second'],
-                ) <= date_max
+                filters=lambda keys: (
+                    date_min
+                    <= datetime.datetime(
+                        keys["year"],
+                        keys["month"],
+                        keys["day"],
+                        keys["hour"],
+                        keys["minute"],
+                        keys["second"],
+                    )
+                    <= date_max
+                )
             )
         else:
             data_z = collection.load()

@@ -60,6 +60,7 @@ class Downloader(ABC):
 
 
     """
+
     PROVIDER = "hydroweb_next"
 
     def __init__(
@@ -100,8 +101,6 @@ class Downloader(ABC):
 
         self.setup()
         self.query_args = self.define_query()
-        
-
 
     @staticmethod
     def _explode_simplify_geometry(
@@ -141,15 +140,16 @@ class Downloader(ABC):
             axis=1,
         )
         if (geom["nodes_count"] > 200).any():
-            raise AttributeError((
-                "One or several of your search polygons have too many nodes,"
-                "consider using the tolerance parameter"
-                "in order to simplify the polygons."
-            ))
+            raise AttributeError(
+                (
+                    "One or several of your search polygons have too many nodes,"
+                    "consider using the tolerance parameter"
+                    "in order to simplify the polygons."
+                )
+            )
 
         return geom
 
-    
     def search_download(self, tolerance: Optional[float] = None) -> None:
         """Search files according to the query and download them.
 
@@ -171,10 +171,12 @@ class Downloader(ABC):
             for geom in geometries.geometry.values:
                 self._search(geom.__geo_interface__)
         else:
-            raise AttributeError((
-                "geometry should string (WKT) or geopandas.GeoDataFrame, "
-                f"received {type(self.geometry)} instead"
-            ))
+            raise AttributeError(
+                (
+                    "geometry should string (WKT) or geopandas.GeoDataFrame, "
+                    f"received {type(self.geometry)} instead"
+                )
+            )
 
         # This command actually downloads the matching products
         downloaded_paths = self._download()
@@ -191,17 +193,19 @@ class Downloader(ABC):
     @abstractmethod
     def define_query(self) -> dict:
         pass
-        
+
     @abstractmethod
-    def _search(self, geom:Optional[str] = None) -> None:
+    def _search(self, geom: Optional[str] = None) -> None:
         pass
 
     @abstractmethod
     def _download(self) -> List:
         pass
 
+
 class EODownloader(Downloader):
     """Downloader for SWOT Pixel Cloud files from  hydroweb.next."""
+
     def __init__(self, *args, **kwargs):
         """Downloader for SWOT Pixel Cloud files from  hydroweb.next initialization.
 
@@ -219,7 +223,6 @@ class EODownloader(Downloader):
                 of (str, tuple, list, geopandas.GeoDataFrame)
         """
         super().__init__(*args, **kwargs)
-
 
     def setup(self) -> None:
         self.dag = EODataAccessGateway()
@@ -233,19 +236,20 @@ class EODownloader(Downloader):
 
         self.__check_collection_name()
 
-
     def __check_collection_name(self) -> None:
         list_collections = [
             d.id for d in self.dag.list_collections(provider=self.PROVIDER)
         ]
 
         if self.collection_name not in list_collections:
-            raise ValueError((
-                "Did not find collection_name in "
-                f"list of available collections in {self.PROVIDER}."
-                f"\nAvailable collections are: {list_collections}"
-            ))
-            
+            raise ValueError(
+                (
+                    "Did not find collection_name in "
+                    f"list of available collections in {self.PROVIDER}."
+                    f"\nAvailable collections are: {list_collections}"
+                )
+            )
+
     def define_query(self) -> dict:
         # Default search criteria when iterating over collection pages
         default_search_criteria = {
@@ -258,35 +262,33 @@ class EODownloader(Downloader):
         }
 
         if self.dates is not None:
-            self.query_args["start"] = \
-                self.dates[0].strftime("%Y-%m-%dT%H:%M:%SZ")
-            self.query_args["end"] = \
-                self.dates[1].strftime("%Y-%m-%dT%H:%M:%SZ")
+            self.query_args["start"] = self.dates[0].strftime("%Y-%m-%dT%H:%M:%SZ")
+            self.query_args["end"] = self.dates[1].strftime("%Y-%m-%dT%H:%M:%SZ")
 
         self.query_args.update(default_search_criteria)
 
         return self.query_args
 
-    def _search(self, geom:Optional[str] = None) -> None:
+    def _search(self, geom: Optional[str] = None) -> None:
         if geom is not None:
             self.query_args["geom"] = geom
 
         self.search_results = self.dag.search_all(**self.query_args)
         # Iterate over all pages to find all products
-        #for page_results in self.dag.search_iter_page(**self.query_args):
+        # for page_results in self.dag.search_iter_page(**self.query_args):
         #    self.search_results.extend(page_results)
 
     def _download(self) -> List:
-        #donwload only .nc asset
+        # donwload only .nc asset
         downloaded_paths = self.dag.download_all(
-            self.search_results, asset=r".*\.nc$",
-            output_dir=self.path_download
+            self.search_results, asset=r".*\.nc$", output_dir=self.path_download
         )
         return downloaded_paths
 
 
 class DefaultDownloader(Downloader):
     """Downloader for SWOT Pixel Cloud files from  hydroweb.next."""
+
     def __init__(self, *args, **kwargs):
         """Downloader for SWOT Pixel Cloud files from  hydroweb.next initialization.
 
@@ -306,38 +308,45 @@ class DefaultDownloader(Downloader):
         super().__init__(*args, **kwargs)
 
     def setup(self) -> None:
-        apikey = os.environ['HYDROWEB_API_KEY']
+        apikey = os.environ["HYDROWEB_API_KEY"]
         self.client = py_hydroweb.Client(api_key=apikey)
         self.downloaded_paths = []
 
     def define_query(self) -> dict:
         if self.dates is not None:
-            self.query_args["start_datetime"] = {'gte': self.dates[0].isoformat(timespec='milliseconds')+"Z"}
-            self.query_args["end_datetime"] = {'lte':self.dates[1].isoformat(timespec='milliseconds')+"Z"}
+            self.query_args["start_datetime"] = {
+                "gte": self.dates[0].isoformat(timespec="milliseconds") + "Z"
+            }
+            self.query_args["end_datetime"] = {
+                "lte": self.dates[1].isoformat(timespec="milliseconds") + "Z"
+            }
 
         return self.query_args
 
-    def _search(self, geom:Optional[str] = None) -> None:
+    def _search(self, geom: Optional[str] = None) -> None:
         # This command actually downloads the matching products
         basket = py_hydroweb.DownloadBasket("pixcdust_basket")
-        
-        kwargs= {"collection_id": self.collection_name, "query": self.query_args,"folder": self.collection_name}
+
+        kwargs = {
+            "collection_id": self.collection_name,
+            "query": self.query_args,
+            "folder": self.collection_name,
+        }
         if geom is not None:
             kwargs.update({"intersects": geom})
         basket.add_collection(**kwargs)
- 
 
         self.download_id = self.client.submit_download(download_basket=basket)
-        
-
 
     def _download(self) -> List:
-        downloaded_zip_path = self.client.download_zip(download_id=self.download_id, output_folder=self.path_download)
+        downloaded_zip_path = self.client.download_zip(
+            download_id=self.download_id, output_folder=self.path_download
+        )
 
         with zipfile.ZipFile(downloaded_zip_path, "r") as zf:
             # Liste des chemins à extraire
             files = [name for name in zf.namelist() if name.lower().endswith(".nc")]
-            for member in tqdm.tqdm(files, desc = "Extracting zip"):
+            for member in tqdm.tqdm(files, desc="Extracting zip"):
                 zf.extract(member, path=self.path_download)
                 downloaded_path = os.path.join(self.path_download, member)
                 self.downloaded_paths.append(downloaded_path)
@@ -345,31 +354,29 @@ class DefaultDownloader(Downloader):
         os.remove(downloaded_zip_path)
 
         self.client.delete_download(download_id=self.download_id)
- 
-        
+
         return self.downloaded_paths
 
 
-def PixCDownloader(*args, backend='default',**kwargs):
+def PixCDownloader(*args, backend="default", **kwargs):
     """Downloader for SWOT Pixel Cloud files from  hydroweb.next initialization.
 
-        Keyword Args:
-            geometry: A geometry used as search criteria. Defaults to None.
-            dates: Minimum and maximum dates to be used as search criteria.
-                Defaults to None.
-            path_download:
-                download path. Defaults to "/tmp/hydroweb_next".
-            verbose: Verbose level (0: nothing, 1: only progress bars, 2: INFO, 3: DEBUG).
-                Defaults to 0.
+    Keyword Args:
+        geometry: A geometry used as search criteria. Defaults to None.
+        dates: Minimum and maximum dates to be used as search criteria.
+            Defaults to None.
+        path_download:
+            download path. Defaults to "/tmp/hydroweb_next".
+        verbose: Verbose level (0: nothing, 1: only progress bars, 2: INFO, 3: DEBUG).
+            Defaults to 0.
 
-        Raises:
-            AttributeError: if the geometry is not one
-                of (str, tuple, list, geopandas.GeoDataFrame)
+    Raises:
+        AttributeError: if the geometry is not one
+            of (str, tuple, list, geopandas.GeoDataFrame)
     """
     if backend == "eodag":
-        print(f'using backend: {backend}')
-        return EODownloader("SWOT_L2_HR_PIXC",*args, **kwargs)
+        print(f"using backend: {backend}")
+        return EODownloader("SWOT_L2_HR_PIXC", *args, **kwargs)
     else:
-        print('using default backend: py-hydroweb')
-        return DefaultDownloader("SWOT_L2_HR_PIXC",*args, **kwargs)
- 
+        print("using default backend: py-hydroweb")
+        return DefaultDownloader("SWOT_L2_HR_PIXC", *args, **kwargs)

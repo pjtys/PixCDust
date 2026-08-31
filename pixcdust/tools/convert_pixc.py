@@ -23,6 +23,7 @@ from pixcdust.converters.zarr import Nc2ZarrConverter
 from pixcdust.converters.shapefile import Nc2ShpConverter
 from pixcdust.converters.core import Converter
 
+
 def paths_glob(ctx, param, paths):
     return list(paths)
 
@@ -36,26 +37,24 @@ def paths_glob(ctx, param, paths):
     help="list of variables of interest to extract from SWOT PIXC files,\
         separated with commas ','",
 )
-@click.option("--aoi", type=click.File(mode='r'), default=None)
+@click.option("--aoi", type=click.File(mode="r"), default=None)
 @click.option(
-    "-m", "--mode",
-    type=click.Choice(['w', 'o']),
+    "-m",
+    "--mode",
+    type=click.Choice(["w", "o"]),
     help="Mode for writing in database",
-    default=('w'),
+    default=("w"),
 )
 @click.argument(
-    'format_out',
-    type=click.Choice(
-        ['gpkg', 'zarr', 'shp'],
-        case_sensitive=False
-    ),
+    "format_out",
+    type=click.Choice(["gpkg", "zarr", "shp"], case_sensitive=False),
 )
 @click.argument(
-    'path_out',
+    "path_out",
     type=click.Path(),
 )
 @click.argument(
-    'paths_in',
+    "paths_in",
     nargs=-1,
     callback=paths_glob,
 )
@@ -66,7 +65,7 @@ def cli(
     variables: str,
     aoi: str,
     mode: str,
-        ):
+):
     """_summary_
 
     Args:
@@ -84,13 +83,13 @@ def cli(
         NotImplementedError: _description_
     """
     if variables is not None:
-        variables.strip('()')
-        variables.strip('[]')
-        list_vars = variables.split(',')
+        variables.strip("()")
+        variables.strip("[]")
+        list_vars = variables.split(",")
         for var in list_vars:
             if any(not c.isalnum() for c in var):
                 raise click.BadOptionUsage(
-                    'variables',
+                    "variables",
                     "apart from the commas, no special caracter may be used",
                 )
 
@@ -102,19 +101,19 @@ def cli(
     else:
         gdf_aoi = None
 
-    if format_out.lower() == 'gpkg':
-        pixc : Converter = Nc2GpkgConverter(
+    if format_out.lower() == "gpkg":
+        pixc: Converter = Nc2GpkgConverter(
             paths_in,
             variables=list_vars,
             area_of_interest=gdf_aoi,
         )
-    elif format_out.lower() == 'zarr':
+    elif format_out.lower() == "zarr":
         pixc = Nc2ZarrConverter(
             sorted(paths_in),
             variables=list_vars,
             area_of_interest=gdf_aoi,
         )
-    elif format_out.lower() == 'shp':
+    elif format_out.lower() == "shp":
         pixc = Nc2ShpConverter(
             paths_in,
             variables=list_vars,
@@ -122,8 +121,8 @@ def cli(
         )
     else:
         raise NotImplementedError(
-            f'the conversion format {format_out} has not been implemented yet',
-            )
+            f"the conversion format {format_out} has not been implemented yet",
+        )
 
     pixc.database_from_nc(path_out, mode=mode)
 
