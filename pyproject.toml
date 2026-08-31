@@ -38,7 +38,7 @@ dependencies = [
 documentation = "https://pixcdust.readthedocs.io/en/latest/index.html"
 repository = "https://github.com/SWOT-community/PixCDust"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "decorator>=5.1.1,<6.0.0",
     "ipykernel>=6.29.4,<7.0.0",
@@ -58,9 +58,6 @@ doc = [
     "ipykernel",
     "sphinx-collections",
 ]
-
-[tool.poetry.group.docs]
-optional = true
 
 [tool.poetry]
 packages = [{include = "pixcdust"}]
