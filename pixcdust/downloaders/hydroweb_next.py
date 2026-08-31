@@ -139,11 +139,9 @@ class Downloader(ABC):
         )
         if (geom["nodes_count"] > 200).any():
             raise AttributeError(
-                
-                    "One or several of your search polygons have too many nodes,"
-                    "consider using the tolerance parameter"
-                    "in order to simplify the polygons."
-                
+                "One or several of your search polygons have too many nodes,"
+                "consider using the tolerance parameter"
+                "in order to simplify the polygons."
             )
 
         return geom
@@ -170,10 +168,8 @@ class Downloader(ABC):
                 self._search(geom.__geo_interface__)
         else:
             raise AttributeError(
-                
-                    "geometry should string (WKT) or geopandas.GeoDataFrame, "
-                    f"received {type(self.geometry)} instead"
-                
+                "geometry should string (WKT) or geopandas.GeoDataFrame, "
+                f"received {type(self.geometry)} instead"
             )
 
         # This command actually downloads the matching products
@@ -241,11 +237,9 @@ class EODownloader(Downloader):
 
         if self.collection_name not in list_collections:
             raise ValueError(
-                
-                    "Did not find collection_name in "
-                    f"list of available collections in {self.PROVIDER}."
-                    f"\nAvailable collections are: {list_collections}"
-                
+                "Did not find collection_name in "
+                f"list of available collections in {self.PROVIDER}."
+                f"\nAvailable collections are: {list_collections}"
             )
 
     def define_query(self) -> dict:

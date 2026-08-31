@@ -64,15 +64,21 @@ class Nc2GpkgConverter(ConverterWSE):
             )
             time_start = dt_time_start.strftime("%Y%m%d")
 
-            layer_name = f"{time_start}_{cycle_number}_{pass_number}_{tile_number}{swath_side}"
+            layer_name = (
+                f"{time_start}_{cycle_number}_{pass_number}_{tile_number}{swath_side}"
+            )
 
             # cheking if output file and layer already exist
-            if os.path.exists(path_out) and mode == "w" and layer_name in fiona.listlayers(path_out):
-                    tqdm.write(
-                        f"skipping layer {layer_name} \
+            if (
+                os.path.exists(path_out)
+                and mode == "w"
+                and layer_name in fiona.listlayers(path_out)
+            ):
+                tqdm.write(
+                    f"skipping layer {layer_name} \
                             (already in geopackage {path_out})"
-                    )
-                    continue
+                )
+                continue
             # converting data from xarray to geodataframe
             ncsimple.open_dataset()
             gdf = ncsimple.to_geodataframe()

@@ -8,7 +8,6 @@ from pixcdust.downloaders.hydroweb_next import PixCDownloader
 
 
 class JsonTestsSettings:
-
     """Reader-writer for the test configuration."""
 
     CONFIG_FILE_NAME = "conftest.json"

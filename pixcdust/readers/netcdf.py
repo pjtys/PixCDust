@@ -146,9 +146,11 @@ class NcSimpleReader(BaseReader):
             pass_number = np.uint16(ds_glob.attrs[cst.default_pass_num_name])
             cycle_number = np.uint16(ds_glob.attrs[cst.default_cyc_num_name])
             time_granule_start = ds_glob.attrs[cst.default_time_start_name]
-            dt_time_start = datetime.strptime(
-                time_granule_start, cst.default_time_format_attrs
-            ).replace(microsecond=0).astimezone(UTC)
+            dt_time_start = (
+                datetime.strptime(time_granule_start, cst.default_time_format_attrs)
+                .replace(microsecond=0)
+                .astimezone(UTC)
+            )
 
         return (
             time_granule_start,

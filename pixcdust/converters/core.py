@@ -139,9 +139,7 @@ class GeoLayerH3Projecter:
     data: gpd.GeoDataFrame
     resolution: int
 
-    def filter_variable(
-        self, conditions: dict[str, dict[str, str | float]]
-    ) -> None:
+    def filter_variable(self, conditions: dict[str, dict[str, str | float]]) -> None:
         """filters from xarray dataset based 
         on operator and threshold on specific variables
 
