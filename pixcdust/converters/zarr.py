@@ -17,21 +17,18 @@
 
 import os
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Optional, Iterable
 
+import dask
+import dask.utils
 import fsspec
-from typing import Tuple, List, Union
-
 import geopandas as gpd
 import zcollection
 import zcollection.indexing
-import dask
-import dask.utils
-
 
 from pixcdust.converters.core import Converter
-from pixcdust.readers.netcdf import NcSimpleReader, NcSimpleConstants
+from pixcdust.readers.netcdf import NcSimpleConstants, NcSimpleReader
 
 TIME_VARNAME = "time"
 
@@ -53,9 +50,9 @@ class Nc2ZarrConverter(Converter):
     def __init__(
         self,
         path_in: str | Iterable[str] | Path | Iterable[Path],
-        variables: Optional[list[str]] = None,
-        area_of_interest: Optional[gpd.GeoDataFrame] = None,
-        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+        variables: list[str] | None = None,
+        area_of_interest: gpd.GeoDataFrame | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
     ):
         """Basic initialisation of a pixcdust converter.
 
@@ -90,7 +87,7 @@ class Nc2ZarrConverter(Converter):
 
         with (
             dask.distributed.LocalCluster(processes=True) as cluster,
-            dask.distributed.Client(cluster) as client,
+            dask.distributed.Client(cluster) as _,
         ):
             xr_ds = NcSimpleReader(
                 path=self.path_in,
@@ -107,7 +104,7 @@ class Nc2ZarrConverter(Converter):
                 xr_ds.to_xarray().drop_vars(self.__cst.default_added_points_name),
             )
             zc_ds.block_size_limit = self.__chunk_size
-            zc_ds.chunks = {list(zc_ds.dimensions.keys())[0]: self.__chunk_size}
+            zc_ds.chunks = {next(iter(zc_ds.dimensions.keys())): self.__chunk_size}
 
             init = True
             if not os.path.exists(path_out) and init:

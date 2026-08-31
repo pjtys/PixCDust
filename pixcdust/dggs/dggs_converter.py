@@ -18,11 +18,11 @@
 import h3
 import numpy as np
 import xarray as xr
-from xarray import Dataset
 import xdggs
-from scipy.interpolate import griddata
-from astropy_healpix import HEALPix
 from astropy import units as u
+from astropy_healpix import HEALPix
+from scipy.interpolate import griddata
+from xarray import Dataset
 
 
 def prepare_dataset_h3(

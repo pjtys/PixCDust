@@ -16,12 +16,12 @@
 """Interface used by all Pixcdust Readers."""
 
 import re
-from typing import Optional, Iterable, Union, List
+from collections.abc import Iterable
 from pathlib import Path
-import xarray as xr
-import pandas as pd
-import geopandas as gpd
 
+import geopandas as gpd
+import pandas as pd
+import xarray as xr
 
 PIXC_DATE_RE = re.compile(r"_\d{8}T\d{6}_\d{8}T\d{6}_")
 """Regex patern used to extract the date (daystartThourstart_dayxendThoursend) 
@@ -29,7 +29,7 @@ from a pixc file name.
 """
 
 
-def sorted_by_date(file_list: Iterable[Union[str, Path]]) -> List[Union[str, Path]]:
+def sorted_by_date(file_list: Iterable[str | Path]) -> list[str | Path]:
     """Sort the filenames by date as some converters need monotonic dates.
     The date is parsed from the filename according to PIXC_DATE_RE.
     Args:
@@ -39,7 +39,7 @@ def sorted_by_date(file_list: Iterable[Union[str, Path]]) -> List[Union[str, Pat
         Sorted file_list.
     """
 
-    def file_name_to_date(file_name: Union[str, Path]):
+    def file_name_to_date(file_name: str | Path):
         date_founds = PIXC_DATE_RE.findall(str(file_name))
         if date_founds:
             return date_founds[-1]
@@ -72,9 +72,9 @@ class BaseReader:
     def __init__(
         self,
         path: str | Iterable[str] | Path | Iterable[Path],
-        variables: Optional[list[str]] = None,
-        area_of_interest: Optional[gpd.GeoDataFrame] = None,
-        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+        variables: list[str] | None = None,
+        area_of_interest: gpd.GeoDataFrame | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
     ):
         """Basic pixcdust database reader configuration.
 
@@ -98,7 +98,7 @@ class BaseReader:
             # sort the filenames by date as some converters need monotonic dates.
             self.path = [str(p) for p in sorted_by_date(path)]
         self.area_of_interest = area_of_interest
-        self._data: Optional[xr.Dataset] = None
+        self._data: xr.Dataset | None = None
         self.variables = variables
         self.conditions = conditions
 

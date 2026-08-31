@@ -1,8 +1,8 @@
 import unittest
 
-from pixcdust.tests.mock import mock_xarray
 from pixcdust.converters.gpkg import Nc2GpkgConverter
 from pixcdust.converters.zarr import Nc2ZarrConverter
+from pixcdust.tests.mock import mock_xarray
 
 
 class TestConverters(unittest.TestCase):

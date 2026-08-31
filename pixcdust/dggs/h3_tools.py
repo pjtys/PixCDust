@@ -16,9 +16,8 @@
 
 import geopandas as gpd
 import h3
-from astropy_healpix import HEALPix
 from astropy import units as u
-
+from astropy_healpix import HEALPix
 from shapely.geometry import Polygon
 
 

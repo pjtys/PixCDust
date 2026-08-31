@@ -1,8 +1,8 @@
-from datetime import datetime
-import numpy as np
+from datetime import UTC, datetime
 
-import xarray as xr
 import geopandas as gpd
+import numpy as np
+import xarray as xr
 
 from pixcdust.readers.netcdf import NcSimpleConstants
 
@@ -42,7 +42,8 @@ def mock_xarray(length: int = 10000) -> xr.Dataset:
     # mocking data
     x = coords[cst.default_lat_name]
     cst_time_array = np.ones(len(x)).astype(datetime)
-    cst_time_array[:] = datetime(2024, 6, 5, 11, 40, 12)
+    # LOCALE timezone
+    cst_time_array[:] = datetime(2024, 6, 5, 11, 40, 12, tzinfo=datetime.now(UTC).astimezone().tzinfo)
 
     data_vars = {
         "height": (dims, np.sin(x) + np.random.normal(scale=10, size=len(x))),

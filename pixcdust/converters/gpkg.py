@@ -16,18 +16,17 @@
 """Geopackage converters."""
 
 import os
-from pathlib import Path
-from typing import Optional, Union
 from dataclasses import dataclass
+from pathlib import Path
 
-from tqdm import tqdm
 import fiona
 import geopandas as gpd
+from tqdm import tqdm
 
 from pixcdust.converters.core import ConverterWSE, GeoLayerH3Projecter
+from pixcdust.readers.gpkg import GpkgReader
 from pixcdust.readers.netcdf import NcSimpleReader
 from pixcdust.readers.zarr import ZarrReader
-from pixcdust.readers.gpkg import GpkgReader
 
 
 class Nc2GpkgConverter(ConverterWSE):
@@ -65,12 +64,10 @@ class Nc2GpkgConverter(ConverterWSE):
             )
             time_start = dt_time_start.strftime("%Y%m%d")
 
-            layer_name = f"{time_start}_{cycle_number}_\
-{pass_number}_{tile_number}{swath_side}"
+            layer_name = f"{time_start}_{cycle_number}_{pass_number}_{tile_number}{swath_side}"
 
             # cheking if output file and layer already exist
-            if os.path.exists(path_out) and mode == "w":
-                if layer_name in fiona.listlayers(path_out):
+            if os.path.exists(path_out) and mode == "w" and layer_name in fiona.listlayers(path_out):
                     tqdm.write(
                         f"skipping layer {layer_name} \
                             (already in geopackage {path_out})"
@@ -109,10 +106,10 @@ class GpkgDGGSProjecter:
 
     path: str
     dggs_res: int
-    conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None
+    conditions: dict[str, dict[str, str | float]] | None = None
     healpix: bool = False
     dggs_layer_pattern: str = "_h3"
-    path_out: Optional[str] = None
+    path_out: str | None = None
     # database: GpkgReader
 
     def __post_init__(self) -> None:

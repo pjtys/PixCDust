@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
-from typing import List
 
 import pytest
+
 from pixcdust.tests.init_tests import JsonTestsSettings, init_hydroweb_env
 
 MOCK_DATA_DIR = Path(__file__).parent / "mock_data"
@@ -61,7 +60,7 @@ def input_folder(tests_settings) -> Path:
 
 
 @pytest.fixture(scope="session")
-def input_files(input_folder) -> List[Path]:
+def input_files(input_folder) -> list[Path]:
     return list(input_folder.glob("**/*nc"))
 
 

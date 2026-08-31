@@ -15,20 +15,19 @@
 #
 """Pre-conversion SWOT Pixel Cloud Netcdf reader."""
 
+import operator
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Tuple, Optional, Iterable, Union
 
+import dask.array as da
+import geopandas
 import numpy as np
 
-import xvec  # noqa  # pylint: disable=unused-import
 # xvec provide xvec accessor to xarray.
-
 import xarray as xr
-import geopandas
-import operator
-import dask.array as da
+import xvec  # noqa  # pylint: disable=unused-import
 
 from pixcdust.dggs.dggs_converter import prepare_dataset_h3, prepare_dataset_healpix
 from pixcdust.readers.base_reader import BaseReader
@@ -94,10 +93,10 @@ class NcSimpleReader(BaseReader):
     def __init__(
         self,
         path: str | Iterable[str] | Path | Iterable[Path],
-        variables: Optional[list[str]] = None,
-        area_of_interest: Optional[geopandas.GeoDataFrame] = None,
-        format_cfg: Optional[NcFormatCfg] = None,
-        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+        variables: list[str] | None = None,
+        area_of_interest: geopandas.GeoDataFrame | None = None,
+        format_cfg: NcFormatCfg | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
     ):
         """Netcdf pixcdust reader configuration.
 
@@ -124,7 +123,7 @@ class NcSimpleReader(BaseReader):
     @staticmethod
     def extract_info_from_nc_attrs(
         filename: str,
-    ) -> Tuple[str, datetime, int, int, int, str]:
+    ) -> tuple[str, datetime, int, int, int, str]:
         """Extracts orbit information from global attributes\
             in a SWOT pixel cloud netcdf.
 
@@ -149,7 +148,7 @@ class NcSimpleReader(BaseReader):
             time_granule_start = ds_glob.attrs[cst.default_time_start_name]
             dt_time_start = datetime.strptime(
                 time_granule_start, cst.default_time_format_attrs
-            ).replace(microsecond=0)
+            ).replace(microsecond=0).astimezone(UTC)
 
         return (
             time_granule_start,
@@ -172,36 +171,37 @@ class NcSimpleReader(BaseReader):
         _k_to = "threshold"
 
         # Loop through each condition and apply the filter
-        for var, condition in self.conditions.items():
-            if var not in self.data.variables:
-                raise IOError(
-                    f"Variable '{var}' not found in dataset variables (available: {list(self.data.variables)})"
+        if self.conditions:
+            for var, condition in self.conditions.items():
+                if var not in self.data.variables:
+                    raise OSError(
+                        f"Variable '{var}' not found in dataset variables (available: {list(self.data.variables)})"
+                    )
+
+                # Ensure the condition dictionary has the correct keys
+                if _k_operator not in condition or _k_to not in condition:
+                    raise ValueError(
+                        f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'"
+                    )
+
+                # Get the operator function dynamically from the operator module
+                try:
+                    operator_func = getattr(operator, condition[_k_operator])
+                except AttributeError:
+                    raise AttributeError(
+                        f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module"
+                    )
+
+                threshold = condition[_k_to]
+
+                # Compute the boolean condition if it's a Dask array
+                if isinstance(self.data[var].data, da.Array):
+                    self.data[var] = self.data[var].compute()
+
+                # Apply the filter using .where() on the dataset
+                self.data = self.data.where(
+                    operator_func(self.data[var], threshold), drop=True
                 )
-
-            # Ensure the condition dictionary has the correct keys
-            if _k_operator not in condition or _k_to not in condition:
-                raise ValueError(
-                    f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'"
-                )
-
-            # Get the operator function dynamically from the operator module
-            try:
-                operator_func = getattr(operator, condition[_k_operator])
-            except AttributeError:
-                raise AttributeError(
-                    f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module"
-                )
-
-            threshold = condition[_k_to]
-
-            # Compute the boolean condition if it's a Dask array
-            if isinstance(self.data[var].data, da.Array):
-                self.data[var] = self.data[var].compute()
-
-            # Apply the filter using .where() on the dataset
-            self.data = self.data.where(
-                operator_func(self.data[var], threshold), drop=True
-            )
 
     def read(self, orbit_info: bool = False) -> None:
         """Load self.path file(s).
@@ -274,7 +274,7 @@ class NcSimpleReader(BaseReader):
         if self.variables:
             # check if variables in forbidden variables before loading
             if len(set(self.variables).intersection(set(self.forbidden_variables))) > 0:
-                raise IOError(
+                raise OSError(
                     f"variables from {self.forbidden_variables} \
                         cannot be extracted"
                 )

@@ -15,9 +15,8 @@
 #
 """Converted Pixcdust zarr database Reader."""
 
-from typing import Optional, Tuple
-
 import datetime
+
 import xarray as xr
 import zcollection
 
@@ -40,8 +39,7 @@ class ZarrReader(BaseReader):
 
     def read(
         self,
-        date_interval: Optional[Tuple[datetime.datetime, datetime.datetime]]
-        | None = None,
+        date_interval: tuple[datetime.datetime, datetime.datetime] | None = None,
     ) -> None:
         """Load a zarr database.
         You can then access from data or with methods like
@@ -60,6 +58,7 @@ class ZarrReader(BaseReader):
         if date_interval:
             date_min = date_interval[0]
             date_max = date_interval[1]
+            # LOCALE timezone
             data_z = collection.load(
                 filters=lambda keys: (
                     date_min
@@ -70,6 +69,7 @@ class ZarrReader(BaseReader):
                         keys["hour"],
                         keys["minute"],
                         keys["second"],
+                        tzinfo=datetime.datetime.now(datetime.UTC).astimezone().tzinfo,
                     )
                     <= date_max
                 )

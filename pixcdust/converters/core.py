@@ -16,11 +16,10 @@
 """Interface used by all Pixcdust Converters."""
 
 import copy
-from dataclasses import dataclass
 import operator
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-
-from typing import Optional, Union, Iterable
 
 import geopandas as gpd
 
@@ -44,9 +43,9 @@ class Converter:
     def __init__(
         self,
         path_in: str | Iterable[str] | Path | Iterable[Path],
-        variables: Optional[list[str]] = None,
-        area_of_interest: Optional[gpd.GeoDataFrame] = None,
-        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+        variables: list[str] | None = None,
+        area_of_interest: gpd.GeoDataFrame | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
     ):
         """Basic initialisation of a pixcdust converter.
 
@@ -141,7 +140,7 @@ class GeoLayerH3Projecter:
     resolution: int
 
     def filter_variable(
-        self, conditions: dict[str, dict[str, Union[str, float]]]
+        self, conditions: dict[str, dict[str, str | float]]
     ) -> None:
         """filters from xarray dataset based 
         on operator and threshold on specific variables
@@ -165,26 +164,29 @@ class GeoLayerH3Projecter:
         _k_to = "threshold"
         # Test if conditions dict meets specifications
         print(conditions)
-        for k in conditions.keys():
-            if k not in self.data.columns:
-                raise IOError(
+        for var, condition in conditions.items():
+            if var not in self.data.columns:
+                raise OSError(
                     f"dict conditions expected existing\
                         variables (in {self.data.columns}),\
-                        received {k}"
+                        received {var}"
                 )
-            for instructions in conditions[k].keys():
+            for instructions in condition:
                 if instructions not in [_k_operator, _k_to]:
                     raise ValueError(
                         f"dict conditions expected {_k_to} and {_k_operator}\
                         keys in dict {conditions},\
                         received {instructions}"
                     )
-            print(f"operator.{conditions[k][_k_operator]}")
-            ope = getattr(operator, conditions[k][_k_operator])
+            op_name = condition[_k_operator]
+            # Typing issue, improvement would be to use TypedDict for conditions
+            assert isinstance(op_name, str)
+            print(f"operator.{op_name}")
+            ope = getattr(operator, op_name)
             self.data = self.data[
                 ope(
-                    self.data[k],
-                    conditions[k][_k_to],
+                    self.data[var],
+                    condition[_k_to],
                 )
             ]
 

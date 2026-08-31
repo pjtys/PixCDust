@@ -1,14 +1,14 @@
 import argparse
-import os
-from typing import Union
-
-from datetime import datetime
 import json
+import os
+from datetime import UTC, datetime
 from pathlib import Path
+
 from pixcdust.downloaders.hydroweb_next import PixCDownloader
 
 
 class JsonTestsSettings:
+
     """Reader-writer for the test configuration."""
 
     CONFIG_FILE_NAME = "conftest.json"
@@ -29,7 +29,7 @@ class JsonTestsSettings:
             raise KeyError("Test input folder not set. Configure it with init_tests.py")
 
     @input_folder.setter
-    def input_folder(self, value: Union[Path, str]) -> None:
+    def input_folder(self, value: Path | str) -> None:
         self._settings["input_folder"] = str(value)
 
     @property
@@ -38,7 +38,7 @@ class JsonTestsSettings:
         return Path(self._settings.get("tmp_folder", "/tmp/pixcdust-test"))
 
     @tmp_folder.setter
-    def tmp_folder(self, value: Union[Path, str]) -> None:
+    def tmp_folder(self, value: Path | str) -> None:
         self._settings["tmp_folder"] = str(value)
 
     @property
@@ -84,8 +84,9 @@ def download_test_data(path_download: Path, backend: str) -> None:
         path_download: where to store the test data.
     """
     dates = (
-        datetime(2024, 8, 1),
-        datetime(2024, 8, 15),
+        # LOCALE timezone
+        datetime(2024, 8, 1, tzinfo=datetime.now(UTC).astimezone().tzinfo),
+        datetime(2024, 8, 15, tzinfo=datetime.now(UTC).astimezone().tzinfo),
     )
 
     geometry = "POLYGON((-1.50580 43.39543,-1.36597 43.39543,-1.36597 43.56471,-1.50580 43.56471,-1.50580 43.39543))"

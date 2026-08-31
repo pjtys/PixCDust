@@ -1,19 +1,19 @@
 import random
-from pathlib import Path, PosixPath
-from typing import List, Union
+from pathlib import Path
 
 import fiona
 import geopandas as gpd
 import numpy as np
 import pytest
 import xarray as xr
+from shapely.geometry import Polygon
+
 from pixcdust.converters.gpkg import GpkgDGGSProjecter, Nc2GpkgConverter
 from pixcdust.converters.shapefile import Nc2ShpConverter
 from pixcdust.converters.zarr import Nc2ZarrConverter
 from pixcdust.readers import GpkgReader
 from pixcdust.readers.netcdf import NcSimpleReader
 from pixcdust.readers.zarr import ZarrReader
-from shapely.geometry import Polygon
 
 LIM_AREA_POL = Polygon(
     [
@@ -32,7 +32,7 @@ def test_nc_simple_reader_conditions(input_files):
     """Test NcSimpleReader with conditions on variables."""
     # Define conditions
     conditions = {
-        "classification": {"operator": "ge", "threshold": 4},  # classification >= 4
+        "height": {"operator": "ge", "threshold": 4},  # height >= 4
         "classification": {"operator": "le", "threshold": 3},  # classification <= 3
         "sig0": {"operator": "gt", "threshold": 15},  # sig0 > 15
     }
@@ -64,7 +64,7 @@ def test_nc_simple_reader_conditions(input_files):
 
 
 def validate_conversion_to_nc(
-    read_data: xr.Dataset, converted_vars: List[str], first_file: Union[str, Path]
+    read_data: xr.Dataset, converted_vars: list[str], first_file: str | Path
 ) -> None:
     """Compare the start of a converted database to the first original netcdf file.
 
@@ -82,7 +82,7 @@ def validate_conversion_to_nc(
 
 def validate_conversion(
     read_data: xr.Dataset,
-    converted_vars: List[str],
+    converted_vars: list[str],
     expected_data: xr.Dataset,
     is_longer: bool,
     len_tol: int = 0,

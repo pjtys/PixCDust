@@ -16,13 +16,12 @@
 """Converted Pixcdust GeoPackage Reader."""
 
 from pathlib import Path
-from typing import Optional, List
-from tqdm import tqdm
 
 import fiona
-import xarray as xr
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
+import xarray as xr
+from tqdm import tqdm
 
 from pixcdust.readers.base_reader import BaseReader
 
@@ -42,7 +41,7 @@ class GpkgReader(BaseReader):
     """
 
     def __init__(
-        self, path: str | Path, area_of_interest: Optional[gpd.GeoDataFrame] = None
+        self, path: str | Path, area_of_interest: gpd.GeoDataFrame | None = None
     ):
         """Gpkg pixcdust database reader configuration.
         Read the list of layers from path.
@@ -52,7 +51,7 @@ class GpkgReader(BaseReader):
             area_of_interest: Optionally only read points in area_of_interest.
         """
         super().__init__(path, area_of_interest=area_of_interest)
-        self._gdf_data: Optional[gpd.GeoDataFrame] = None
+        self._gdf_data: gpd.GeoDataFrame | None = None
         self.layers: list[str] = fiona.listlayers(self.path)
 
     @property
@@ -99,7 +98,7 @@ class GpkgReader(BaseReader):
 
         return layer_data
 
-    def read(self, layers: Optional[List[str]] = None) -> None:
+    def read(self, layers: list[str] | None = None) -> None:
         """Load all layers, or subset of layers, from geopackage database.
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.

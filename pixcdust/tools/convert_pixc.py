@@ -15,13 +15,12 @@
 #
 
 import click
-
 import geopandas as gpd
 
-from pixcdust.converters.gpkg import Nc2GpkgConverter
-from pixcdust.converters.zarr import Nc2ZarrConverter
-from pixcdust.converters.shapefile import Nc2ShpConverter
 from pixcdust.converters.core import Converter
+from pixcdust.converters.gpkg import Nc2GpkgConverter
+from pixcdust.converters.shapefile import Nc2ShpConverter
+from pixcdust.converters.zarr import Nc2ZarrConverter
 
 
 def paths_glob(ctx, param, paths):
