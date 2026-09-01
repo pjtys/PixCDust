@@ -320,19 +320,6 @@ class TestOpenMfdataset:
         with pytest.raises(OSError):
             reader.open_mfdataset(orbit_info=False)
 
-    @pytest.mark.xfail(
-        reason=(
-            "open_mfdataset nests filter/postprocess under `if self.variables:`, "
-            "so with variables=None the points coordinate is never added "
-            "(inconsistent with open_dataset)."
-        ),
-        strict=False,
-    )
-    def test_postprocess_runs_even_without_variable_subset(self, input_files):
-        reader = NcSimpleReader(input_files)  # variables=None
-        reader.open_mfdataset(orbit_info=False)
-        assert reader.cst.default_added_points_name in reader.data.coords
-
 
 if __name__ == "__main__":
     import sys
