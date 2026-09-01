@@ -64,7 +64,7 @@ class Downloader(ABC):
     def __init__(
         self,
         collection_name: str,
-        geometry: str | list[str] | geopandas.GeoDataFrame | None = (None,),
+        geometry: str | list[str] | geopandas.GeoDataFrame | None = None,
         dates: tuple[datetime.date, datetime.date] | None = None,
         path_download: str | Path = "/tmp/hydroweb_next",
         verbose: int | None = 0,
