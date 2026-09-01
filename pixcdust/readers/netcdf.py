@@ -123,7 +123,7 @@ class NcSimpleReader(BaseReader):
     @staticmethod
     def extract_info_from_nc_attrs(
         filename: str,
-    ) -> tuple[str, datetime, int, int, int, str]:
+    ) -> tuple[str, datetime, np.uint16, np.uint16, np.uint16, str]:
         """Extracts orbit information from global attributes\
             in a SWOT pixel cloud netcdf.
 
@@ -187,11 +187,14 @@ class NcSimpleReader(BaseReader):
                     )
 
                 # Get the operator function dynamically from the operator module
+                op_name = condition[_k_operator]
                 try:
-                    operator_func = getattr(operator, condition[_k_operator])
+                    # Typing issue, improvement would be to use TypedDict for conditions
+                    assert isinstance(op_name, str)
+                    operator_func = getattr(operator, op_name)
                 except AttributeError:
                     raise AttributeError(
-                        f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module"
+                        f"Operator '{op_name}' is not a valid operator in the operator module"
                     )
 
                 threshold = condition[_k_to]
@@ -361,8 +364,8 @@ class NcSimpleReader(BaseReader):
 
         """
         geom = geopandas.points_from_xy(
-            self.data[self.cst.default_long_name],
-            self.data[self.cst.default_lat_name],
+            self.data[self.cst.default_long_name].data,
+            self.data[self.cst.default_lat_name].data,
         )
 
         self.data = self.data.assign_coords(
