@@ -82,8 +82,8 @@ def cli(
         NotImplementedError: _description_
     """
     if variables is not None:
-        variables.strip("()")
-        variables.strip("[]")
+        variables = variables.strip("()")
+        variables = variables.strip("[]")
         list_vars = variables.split(",")
         for var in list_vars:
             if any(not c.isalnum() for c in var):
