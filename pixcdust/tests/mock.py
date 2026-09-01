@@ -17,6 +17,9 @@ def mock_xarray(length: int = 10000) -> xr.Dataset:
     Returns:
         dataset with some typical variables
     """
+    # deterministic random dor testing
+    np.random.seed(0)
+
     cst = NcSimpleConstants()
 
     # mocking dimension

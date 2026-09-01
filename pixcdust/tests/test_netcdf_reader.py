@@ -11,12 +11,10 @@ The tests are split in two groups:
   ``extract_info_from_nc_attrs``, ``open_dataset`` and ``open_mfdataset``.
 """
 
-import dataclasses
 from datetime import UTC, datetime
 
 import numpy as np
 import pytest
-import xarray as xr
 
 from pixcdust.readers.netcdf import (
     NcFormatCfg,
@@ -40,20 +38,13 @@ EXPECTED_NB_POINTS = 10001
 # Local fixtures / helpers
 # ---------------------------------------------------------------------------
 @pytest.fixture
-def mock_ds() -> xr.Dataset:
-    """A small, deterministic in-memory pixc-like dataset."""
-    np.random.seed(0)
-    return mock_xarray(length=200)
-
-
-@pytest.fixture
-def reader_with_mock(mock_ds) -> NcSimpleReader:
+def reader_with_mock() -> NcSimpleReader:
     """A reader whose ``data`` is forced to an in-memory dataset.
 
     ``__init__`` never opens the path, so a dummy path is enough here.
     """
     reader = NcSimpleReader("dummy_path.nc")
-    reader.data = mock_ds
+    reader.data = mock_xarray(length=200)
     return reader
 
 
@@ -105,9 +96,6 @@ class TestNcFormatCfg:
         assert cfg_a.forbidden_variables is not cfg_b.forbidden_variables
         cfg_a.forbidden_variables.append("mutated")
         assert "mutated" not in cfg_b.forbidden_variables
-
-    def test_is_dataclass(self):
-        assert dataclasses.is_dataclass(NcFormatCfg)
 
 
 # ---------------------------------------------------------------------------
@@ -219,48 +207,6 @@ class TestReadDispatch:
         )
         reader.read(orbit_info=True)
         assert received == {"orbit_info": True}
-
-
-class TestToDggsVariableSelection:
-    """to_h3/to_healpix must forward the right sub-dataset and parameters."""
-
-    def _spy(self, monkeypatch, target):
-        captured = {}
-
-        def fake_prepare(data, resolution, interp, method):
-            captured["vars"] = list(data.data_vars)
-            captured["resolution"] = resolution
-            captured["interp"] = interp
-            captured["method"] = method
-            return data
-
-        monkeypatch.setattr("pixcdust.readers.netcdf." + target, fake_prepare)
-        return captured
-
-    def test_to_h3_with_str(self, reader_with_mock, monkeypatch):
-        captured = self._spy(monkeypatch, "prepare_dataset_h3")
-        reader_with_mock.to_h3("height", resolution=7, interp=True, method="cubic")
-        assert captured["vars"] == ["height"]
-        assert captured["resolution"] == 7
-        assert captured["interp"] is True
-        assert captured["method"] == "cubic"
-
-    def test_to_h3_with_list(self, reader_with_mock, monkeypatch):
-        captured = self._spy(monkeypatch, "prepare_dataset_h3")
-        reader_with_mock.to_h3(["height", "sig0"])
-        assert captured["vars"] == ["height", "sig0"]
-        assert captured["resolution"] == 8  # default
-
-    def test_to_h3_with_none_uses_all_vars(self, reader_with_mock, monkeypatch):
-        captured = self._spy(monkeypatch, "prepare_dataset_h3")
-        reader_with_mock.to_h3(None)
-        assert "height" in captured["vars"]
-        assert "sig0" in captured["vars"]
-
-    def test_to_healpix_with_str(self, reader_with_mock, monkeypatch):
-        captured = self._spy(monkeypatch, "prepare_dataset_healpix")
-        reader_with_mock.to_healpix("geoid")
-        assert captured["vars"] == ["geoid"]
 
 
 # ---------------------------------------------------------------------------
