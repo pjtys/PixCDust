@@ -94,7 +94,7 @@ class Downloader(ABC):
         self.verbose = verbose
 
         self.query_args = {}
-        self.search_results: list[SearchResult] = []
+        self.search_results: SearchResult = SearchResult([])
 
         if not os.path.isdir(self.path_download):
             os.mkdir(self.path_download)
@@ -268,9 +268,6 @@ class EODownloader(Downloader):
             self.query_args["geom"] = geom
 
         self.search_results = self.dag.search_all(**self.query_args)
-        # Iterate over all pages to find all products
-        # for page_results in self.dag.search_iter_page(**self.query_args):
-        #    self.search_results.extend(page_results)
 
     def _download(self) -> list:
         # donwload only .nc asset
