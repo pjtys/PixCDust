@@ -69,7 +69,7 @@ class Downloader(ABC):
         geometry: str | list[str] | geopandas.GeoDataFrame | None = None,
         dates: tuple[datetime.date, datetime.date] | None = None,
         path_download: str | Path = "/tmp/hydroweb_next",
-        verbose: int | None = 0,
+        verbose: int = 0,
     ):
         """Downloader for hydroweb.next STAC API initialization.
 
