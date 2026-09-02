@@ -25,7 +25,9 @@ import geopandas
 import py_hydroweb
 import shapely
 import tqdm
-from eodag import EODataAccessGateway, SearchResult, setup_logging
+from eodag.api.core import EODataAccessGateway
+from eodag.api.search_result import SearchResult
+from eodag.utils.logging import setup_logging
 
 HELP_MESSAGE = """
 Download products from hydroweb.next (https://hydroweb.next.theia-land.fr)
