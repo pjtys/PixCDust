@@ -15,13 +15,11 @@
 #
 """Converters utility"""
 
-import xarray as xr
 import geopandas as gpd
+import xarray as xr
 
 
-def geoxarray_to_geodataframe(
-    ds: xr.Dataset,
-        *args, **kwargs) -> gpd.GeoDataFrame:
+def geoxarray_to_geodataframe(ds: xr.Dataset, *args, **kwargs) -> gpd.GeoDataFrame:
     """Converts an xarray.Dataset with points coordinates  into\
         a geopandas.GeodataFrame with xvec
 

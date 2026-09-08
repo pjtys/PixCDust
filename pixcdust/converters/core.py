@@ -16,11 +16,10 @@
 """Interface used by all Pixcdust Converters."""
 
 import copy
-from dataclasses import dataclass
 import operator
+from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
-
-from typing import Optional, Union, Iterable
 
 import geopandas as gpd
 
@@ -44,9 +43,9 @@ class Converter:
     def __init__(
         self,
         path_in: str | Iterable[str] | Path | Iterable[Path],
-        variables: Optional[list[str]] = None,
-        area_of_interest: Optional[gpd.GeoDataFrame] = None,
-        conditions: Optional[dict[str, dict[str, Union[str, float]]]] = None,
+        variables: list[str] | None = None,
+        area_of_interest: gpd.GeoDataFrame | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
     ):
         """Basic initialisation of a pixcdust converter.
 
@@ -91,8 +90,10 @@ class ConverterWSE(Converter):
         variables: Optionally only read these variables.
         area_of_interest: Optionally only read points in area_of_interest.
     """
-    def database_from_nc(self, path_out: str | Path, mode: str = "w", compute_wse: bool = True) \
-            -> None:
+
+    def database_from_nc(
+        self, path_out: str | Path, mode: str = "w", compute_wse: bool = True
+    ) -> None:
         """Convert the path_in files to path_out.
         Args:
             path_out: Output path of the convertion.
@@ -109,19 +110,21 @@ class ConverterWSE(Converter):
                     self.variables.append(var)
 
     def _compute_wse(self, gdf):
-        gdf[self._get_name_wse_var()] = \
-            gdf[self._get_vars_wse_computation()[0]] - \
-            gdf[self._get_vars_wse_computation()[1]]
+        gdf[self._get_name_wse_var()] = (
+            gdf[self._get_vars_wse_computation()[0]]
+            - gdf[self._get_vars_wse_computation()[1]]
+        )
 
     @staticmethod
     def _get_vars_wse_computation() -> list[str]:
         """Names of fields used to compute wse."""
-        return ['height', 'geoid']
+        return ["height", "geoid"]
 
     @staticmethod
     def _get_name_wse_var() -> str:
         """Output name for wse."""
-        return 'wse'
+        return "wse"
+
 
 @dataclass
 class GeoLayerH3Projecter:
@@ -132,10 +135,11 @@ class GeoLayerH3Projecter:
         resolution: Resolution
 
     """
+
     data: gpd.GeoDataFrame
     resolution: int
 
-    def filter_variable(self, conditions: dict[str,dict[str, Union[str, float]]]) -> None:
+    def filter_variable(self, conditions: dict[str, dict[str, str | float]]) -> None:
         """filters from xarray dataset based 
         on operator and threshold on specific variables
 
@@ -154,36 +158,40 @@ class GeoLayerH3Projecter:
             AttributeError: if operator is not the function name of\
                 the operator module
         """
-        _k_operator = 'operator'
-        _k_to = 'threshold'
+        _k_operator = "operator"
+        _k_to = "threshold"
         # Test if conditions dict meets specifications
         print(conditions)
-        for k in conditions.keys():
-            if k not in self.data.columns:
-                raise IOError(
-                    f'dict conditions expected existing\
+        for var, condition in conditions.items():
+            if var not in self.data.columns:
+                raise OSError(
+                    f"dict conditions expected existing\
                         variables (in {self.data.columns}),\
-                        received {k}'
+                        received {var}"
                 )
-            for instructions in conditions[k].keys():
+            for instructions in condition:
                 if instructions not in [_k_operator, _k_to]:
                     raise ValueError(
-                        f'dict conditions expected {_k_to} and {_k_operator}\
+                        f"dict conditions expected {_k_to} and {_k_operator}\
                         keys in dict {conditions},\
-                        received {instructions}'
+                        received {instructions}"
                     )
-            print(f"operator.{conditions[k][_k_operator]}")
-            ope = getattr(operator, conditions[k][_k_operator])
+            op_name = condition[_k_operator]
+            # Typing issue, improvement would be to use TypedDict for conditions
+            assert isinstance(op_name, str)
+            print(f"operator.{op_name}")
+            ope = getattr(operator, op_name)
             self.data = self.data[
                 ope(
-                    self.data[k],
-                    conditions[k][_k_to],
+                    self.data[var],
+                    condition[_k_to],
                 )
             ]
 
     def compute_h3_layer(self) -> None:
         """Project data to h3."""
         from pixcdust.dggs import h3_tools
+
         self.data = h3_tools.gdf_to_h3_gdf(
             self.data,
             self.resolution,
@@ -192,6 +200,7 @@ class GeoLayerH3Projecter:
     def compute_healpix_layer(self) -> None:
         """Project data to Healpix."""
         from pixcdust.dggs import h3_tools
+
         self.data = h3_tools.gdf_to_healpix_gdf(
             self.data,
             self.resolution,

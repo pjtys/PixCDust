@@ -45,14 +45,18 @@ class Nc2ShpConverter(Converter):
         except FileExistsError:
             pass
         for path in tqdm(self.path_in):
-            ncsimple = NcSimpleReader(path,
-                                      variables=self.variables,
-                                      area_of_interest=self.area_of_interest,
-                                      conditions=self.conditions,
-                                      )
+            ncsimple = NcSimpleReader(
+                path,
+                variables=self.variables,
+                area_of_interest=self.area_of_interest,
+                conditions=self.conditions,
+            )
 
             filename_out = os.path.splitext(os.path.basename(path))[0]
-            path_shp = os.path.join(path_out, filename_out + '.shp', )
+            path_shp = os.path.join(
+                path_out,
+                filename_out + ".shp",
+            )
             # cheking if output file and layer already exist
             if os.path.exists(path_shp) and mode == "w":
                 continue

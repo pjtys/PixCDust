@@ -15,20 +15,19 @@
 #
 """Pre-conversion SWOT Pixel Cloud Netcdf reader."""
 
+import operator
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Tuple, Optional, Iterable, Union
 
+import dask.array as da
+import geopandas
 import numpy as np
 
-import xvec  # noqa  # pylint: disable=unused-import
 # xvec provide xvec accessor to xarray.
-
 import xarray as xr
-import geopandas
-import operator
-import dask.array as da
+import xvec  # noqa  # pylint: disable=unused-import
 
 from pixcdust.dggs.dggs_converter import prepare_dataset_h3, prepare_dataset_healpix
 from pixcdust.readers.base_reader import BaseReader
@@ -56,11 +55,9 @@ class NcSimpleConstants:
 
 @dataclass
 class NcFormatCfg:
-    """Class configuring how a SWOT pixel cloud files is expected to be structured.
-    """
-    constants: NcSimpleConstants  =  field(
-        default_factory=NcSimpleConstants
-    )
+    """Class configuring how a SWOT pixel cloud files is expected to be structured."""
+
+    constants: NcSimpleConstants = field(default_factory=NcSimpleConstants)
     trusted_group: str = "pixel_cloud"
     forbidden_variables: list[str] = field(
         default_factory=lambda: [
@@ -90,15 +87,17 @@ class NcSimpleReader(BaseReader):
                     "classification":{'operator': "ge", 'threshold': 3},\
                     }
     """
+
     MULTI_FILE_SUPPORT = True
 
-    def __init__(self,
-                 path: str | Iterable[str] | Path | Iterable[Path],
-                 variables: Optional[list[str]] = None,
-                 area_of_interest: Optional[geopandas.GeoDataFrame] = None,
-                 format_cfg : Optional[NcFormatCfg] = None,
-                 conditions:  Optional[dict[str, dict[str, Union[str, float]]]] = None,
-                 ):
+    def __init__(
+        self,
+        path: str | Iterable[str] | Path | Iterable[Path],
+        variables: list[str] | None = None,
+        area_of_interest: geopandas.GeoDataFrame | None = None,
+        format_cfg: NcFormatCfg | None = None,
+        conditions: dict[str, dict[str, str | float]] | None = None,
+    ):
         """Netcdf pixcdust reader configuration.
 
         Args:
@@ -122,7 +121,9 @@ class NcSimpleReader(BaseReader):
         self.conditions = conditions
 
     @staticmethod
-    def extract_info_from_nc_attrs(filename: str) -> Tuple[str, datetime, int, int, int, str]:
+    def extract_info_from_nc_attrs(
+        filename: str,
+    ) -> tuple[str, datetime, int, int, int, str]:
         """Extracts orbit information from global attributes\
             in a SWOT pixel cloud netcdf.
 
@@ -145,9 +146,11 @@ class NcSimpleReader(BaseReader):
             pass_number = np.uint16(ds_glob.attrs[cst.default_pass_num_name])
             cycle_number = np.uint16(ds_glob.attrs[cst.default_cyc_num_name])
             time_granule_start = ds_glob.attrs[cst.default_time_start_name]
-            dt_time_start = datetime.strptime(
-                time_granule_start, cst.default_time_format_attrs
-            ).replace(microsecond=0)
+            dt_time_start = (
+                datetime.strptime(time_granule_start, cst.default_time_format_attrs)
+                .replace(microsecond=0)
+                .astimezone(UTC)
+            )
 
         return (
             time_granule_start,
@@ -166,38 +169,44 @@ class NcSimpleReader(BaseReader):
             ValueError: If 'operator' or 'threshold' keys are not in conditions.
             AttributeError: If operator is not the function name of the operator module.
         """
-        _k_operator = 'operator'
-        _k_to = 'threshold'
+        _k_operator = "operator"
+        _k_to = "threshold"
 
         # Loop through each condition and apply the filter
-        for var, condition in self.conditions.items():
-            if var not in self.data.variables:
-                raise IOError(
-                    f"Variable '{var}' not found in dataset variables (available: {list(self.data.variables)})"
+        if self.conditions:
+            for var, condition in self.conditions.items():
+                if var not in self.data.variables:
+                    raise OSError(
+                        f"Variable '{var}' not found in dataset variables (available: {list(self.data.variables)})"
+                    )
+
+                # Ensure the condition dictionary has the correct keys
+                if _k_operator not in condition or _k_to not in condition:
+                    raise ValueError(
+                        f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'"
+                    )
+
+                # Get the operator function dynamically from the operator module
+                try:
+                    operator_func = getattr(operator, condition[_k_operator])
+                except AttributeError:
+                    raise AttributeError(
+                        f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module"
+                    )
+
+                threshold = condition[_k_to]
+
+                # Compute the boolean condition if it's a Dask array
+                if isinstance(self.data[var].data, da.Array):
+                    self.data[var] = self.data[var].compute()
+
+                # Apply the filter using .where() on the dataset
+                self.data = self.data.where(
+                    operator_func(self.data[var], threshold), drop=True
                 )
 
-            # Ensure the condition dictionary has the correct keys
-            if _k_operator not in condition or _k_to not in condition:
-                raise ValueError(f"Condition for variable '{var}' must include '{_k_operator}' and '{_k_to}'")
-
-            # Get the operator function dynamically from the operator module
-            try:
-                operator_func = getattr(operator, condition[_k_operator])
-            except AttributeError:
-                raise AttributeError(
-                    f"Operator '{condition[_k_operator]}' is not a valid operator in the operator module")
-
-            threshold = condition[_k_to]
-
-            # Compute the boolean condition if it's a Dask array
-            if isinstance(self.data[var].data, da.Array):
-                self.data[var] = self.data[var].compute()
-
-            # Apply the filter using .where() on the dataset
-            self.data = self.data.where(operator_func(self.data[var], threshold), drop=True)
-
     def read(self, orbit_info: bool = False) -> None:
-        """ Load self.path file(s).
+        """Load self.path file(s).
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
 
@@ -212,7 +221,7 @@ class NcSimpleReader(BaseReader):
         return self.open_dataset()
 
     def open_dataset(self) -> None:
-        """ Load the self.path file (need only one file in self.path).
+        """Load the self.path file (need only one file in self.path).
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
         """
@@ -230,10 +239,10 @@ class NcSimpleReader(BaseReader):
         self.__postprocess_points()
 
     def open_mfdataset(
-            self,
-            orbit_info: bool = False,
+        self,
+        orbit_info: bool = False,
     ) -> None:
-        """ Load self.path file(s) as a nested array.
+        """Load self.path file(s) as a nested array.
         You can then access from data or with methods like
         to_xarray, to_dataframe or to_geodataframe.
 
@@ -267,7 +276,7 @@ class NcSimpleReader(BaseReader):
         if self.variables:
             # check if variables in forbidden variables before loading
             if len(set(self.variables).intersection(set(self.forbidden_variables))) > 0:
-                raise IOError(
+                raise OSError(
                     f"variables from {self.forbidden_variables} \
                         cannot be extracted"
                 )
@@ -288,11 +297,13 @@ class NcSimpleReader(BaseReader):
 
             self.__postprocess_points()
 
-    def to_h3(self,
-              variables: str | list[str] | None=None,
-              resolution: int = 8,
-              interp: bool=False,
-              method: str = 'linear') -> xr.Dataset:
+    def to_h3(
+        self,
+        variables: str | list[str] | None = None,
+        resolution: int = 8,
+        interp: bool = False,
+        method: str = "linear",
+    ) -> xr.Dataset:
         """
         Convert a Dataset with latitude and longitude coordinates into an H3-indexed grid.
 
@@ -311,12 +322,17 @@ class NcSimpleReader(BaseReader):
             data = self.to_xarray()[variables]
         else:
             data = self.to_xarray()
-        return prepare_dataset_h3(data, resolution=resolution, interp=interp, method=method)
+        return prepare_dataset_h3(
+            data, resolution=resolution, interp=interp, method=method
+        )
 
-    def to_healpix(self, variables: str | list[str] | None=None,
-                   resolution: int = 8,
-                   interp: bool= False,
-                   method: str = 'linear') -> xr.Dataset:
+    def to_healpix(
+        self,
+        variables: str | list[str] | None = None,
+        resolution: int = 8,
+        interp: bool = False,
+        method: str = "linear",
+    ) -> xr.Dataset:
         """
         Convert a Dataset with latitude and longitude coordinates into an HEALPix-indexed grid.
 
@@ -335,7 +351,9 @@ class NcSimpleReader(BaseReader):
             data = self.to_xarray()[variables]
         else:
             data = self.to_xarray()
-        return prepare_dataset_healpix(data, resolution=resolution, interp=interp, method=method)
+        return prepare_dataset_healpix(
+            data, resolution=resolution, interp=interp, method=method
+        )
 
     def __postprocess_points(self) -> None:
         """Adds a points coordinates containing shapely.Points (longitude, latitude)

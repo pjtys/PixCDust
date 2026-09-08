@@ -16,18 +16,17 @@
 """Geopackage converters."""
 
 import os
-from pathlib import Path
-from typing import Optional, Union
 from dataclasses import dataclass
+from pathlib import Path
 
-from tqdm import tqdm
 import fiona
 import geopandas as gpd
+from tqdm import tqdm
 
 from pixcdust.converters.core import ConverterWSE, GeoLayerH3Projecter
+from pixcdust.readers.gpkg import GpkgReader
 from pixcdust.readers.netcdf import NcSimpleReader
 from pixcdust.readers.zarr import ZarrReader
-from pixcdust.readers.gpkg import GpkgReader
 
 
 class Nc2GpkgConverter(ConverterWSE):
@@ -45,15 +44,16 @@ class Nc2GpkgConverter(ConverterWSE):
 
     """
 
-    def database_from_nc(self, path_out: str | Path, mode: str = "w", compute_wse: bool = True) \
-            -> None:
+    def database_from_nc(
+        self, path_out: str | Path, mode: str = "w", compute_wse: bool = True
+    ) -> None:
         path_out = str(path_out)
         if compute_wse:
             self._append_wse_vars()
         for path in tqdm(self.path_in):
             ncsimple = NcSimpleReader(
                 path,
-                variables= self.variables,
+                variables=self.variables,
                 area_of_interest=self.area_of_interest,
                 conditions=self.conditions,
             )
@@ -62,23 +62,26 @@ class Nc2GpkgConverter(ConverterWSE):
             _, dt_time_start, cycle_number, pass_number, tile_number, swath_side = (
                 ncsimple.extract_info_from_nc_attrs(path)
             )
-            time_start = dt_time_start.strftime('%Y%m%d')
+            time_start = dt_time_start.strftime("%Y%m%d")
 
-            layer_name = f"{time_start}_{cycle_number}_\
-{pass_number}_{tile_number}{swath_side}"
+            layer_name = (
+                f"{time_start}_{cycle_number}_{pass_number}_{tile_number}{swath_side}"
+            )
 
             # cheking if output file and layer already exist
-            if os.path.exists(path_out) and mode == "w":
-                if layer_name in fiona.listlayers(path_out):
-                    tqdm.write(
-                        f"skipping layer {layer_name} \
+            if (
+                os.path.exists(path_out)
+                and mode == "w"
+                and layer_name in fiona.listlayers(path_out)
+            ):
+                tqdm.write(
+                    f"skipping layer {layer_name} \
                             (already in geopackage {path_out})"
-                    )
-                    continue
+                )
+                continue
             # converting data from xarray to geodataframe
             ncsimple.open_dataset()
-            gdf = ncsimple.to_geodataframe(
-            )
+            gdf = ncsimple.to_geodataframe()
 
             if gdf.size == 0:
                 tqdm.write(
@@ -109,18 +112,19 @@ class GpkgDGGSProjecter:
 
     path: str
     dggs_res: int
-    conditions: Optional[dict[str,dict[str, Union[str, float]]]] = None
+    conditions: dict[str, dict[str, str | float]] | None = None
     healpix: bool = False
-    dggs_layer_pattern: str = '_h3'
-    path_out: Optional[str] = None
+    dggs_layer_pattern: str = "_h3"
+    path_out: str | None = None
     # database: GpkgReader
 
     def __post_init__(self) -> None:
         self.database = GpkgReader(self.path)
         self.database.layers = [
-            layer for layer in fiona.listlayers(self.path)
+            layer
+            for layer in fiona.listlayers(self.path)
             if not layer.endswith(self.dggs_layer_pattern)
-            ]
+        ]
 
         if self.path_out is None:
             self.path_out = self.path
@@ -165,6 +169,7 @@ class Zarr2GpkgConverter:
     Attributes:
         path: Gpkg pixelcloud to convert.
     """
+
     path: str
     data: gpd.GeoDataFrame = None
 
